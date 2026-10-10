@@ -1,0 +1,7 @@
+.DS_Store
+node_modules/
+footage/*.mp4
+footage/*.mov
+footage/*.MOV
+footage/*.m4v
+eval/out/

@@ -1,0 +1,30 @@
+[Event "Torture test (scripted)"]
+[Site "Recording 5"]
+[Date "2026.??.??"]
+[Round "-"]
+[White "Script White"]
+[Black "Script Black"]
+[Result "0-1"]
+
+1. e4 e6 2. d4 d5 3. e5 c5 4. c3 Nc6 5. Nf3 Qb6 6. a3 c4 7. Nbd2 Na5 8.
+Rb1 Bd7 9. b4 cxb3 {EN PASSANT (Black). Put the black pawn on b3 first.
+Wait about 3 seconds, then take the white b4 pawn off.} 10. Nxb3 Nxb3
+11. Qxb3 Qxb3 {Capture with a pause: take the white queen off b3 first,
+wait about 3 seconds, then put the black queen down.} 12. Rxb3 O-O-O
+{CASTLING (Black, queenside). King to c8 first, wait about 3 seconds,
+then the rook to d8.} 13. Bd3 Ne7 14. O-O {CASTLING (White, kingside).
+Normal speed, king first then rook.} f5 15. exf6 {EN PASSANT (White).
+White pawn to f6 first, wait about 3 seconds, then take the black f5
+pawn off.} gxf6 16. Bf4 Ng6 17. Bxg6 {Leave the bishop slightly
+off-center on g6 for this move.} hxg6 18. Bg3 Bc6 {Before White plays
+19. Rfb1, straighten two or three pieces on their squares without moving
+them, and let your hand hover over the board for about 5 seconds.} 19.
+Rfb1 Bd6 20. Bxd6 Rxd6 21. Nd2 e5 22. dxe5 fxe5 23. c4 d4 24. Nf3 Bxf3
+25. Rxf3 b6 26. Rf5 Re8 27. f4 exf4 28. Rxf4 a5 29. Rbf1 a4 30. Rf8 Rxf8
+31. Rxf8+ Rd8 32. Rxd8+ Kxd8 {From here the moves are scripted to set up
+the promotions, not for quality.} 33. Kf2 Kc7 34. h4 Kc6 35. g4 Kc5 36.
+h5 gxh5 37. gxh5 Kxc4 38. h6 Kd5 39. h7 d3 40. h8=Q {PROMOTION (White,
+queen). Use the spare white queen from move 11.} d2 41. Qc3 d1=N+
+{UNDERPROMOTION (Black, knight). Use a spare black knight. The knight
+forks king and queen.} 42. Ke2 Nxc3+ {White resigns. Stop the recording
+after a few seconds of stillness.} 0-1

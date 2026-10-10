@@ -1,0 +1,12 @@
+{
+  "name": "squarecast",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Record over-the-board chess games with a phone camera and broadcast them to Lichess.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "eval": "node eval/run.js"
+  }
+}

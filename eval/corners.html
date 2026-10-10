@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Board corners</title>
+<style>
+  :root { --bg: #f6f5f2; --ink: #1d1d1b; --muted: #6b6a66; --accent: #2f6f4f; }
+  body { margin: 0; font: 15px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  p { color: var(--muted); }
+  .stage { position: relative; display: inline-block; max-width: 100%; }
+  img { display: block; max-width: 100%; }
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  textarea { width: 100%; height: 5em; font: 13px ui-monospace, monospace; }
+  button { font: inherit; padding: 6px 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Board corners</h1>
+  <p>Open a still frame of the recording (make one with
+  <code>ffmpeg -ss 2 -i video.mp4 -frames:v 1 frame.png</code>). Click the outer
+  corners of the 64 squares in this order: a1, h1, h8, a8. Save the text below as
+  <code>eval/corners/&lt;recording name&gt;.json</code>.</p>
+  <p><input type="file" accept="image/*" id="file"> <button id="reset">Start over</button></p>
+  <div class="stage"><img id="img" alt=""><svg id="svg"></svg></div>
+  <p id="next"></p>
+  <textarea id="out" readonly></textarea>
+</main>
+<script type="module">
+import { solveHomography, applyHomography } from '../src/core/homography.js';
+const names = ['a1', 'h1', 'h8', 'a8'];
+const img = document.getElementById('img');
+const svg = document.getElementById('svg');
+const out = document.getElementById('out');
+const next = document.getElementById('next');
+let pts = [];
+
+document.getElementById('file').onchange = (e) => {
+  const f = e.target.files[0];
+  if (f) img.src = URL.createObjectURL(f);
+  pts = [];
+  draw();
+};
+document.getElementById('reset').onclick = () => { pts = []; draw(); };
+
+img.onload = () => {
+  svg.setAttribute('viewBox', `0 0 ${img.naturalWidth} ${img.naturalHeight}`);
+  draw();
+};
+
+img.parentElement.onclick = (e) => {
+  if (pts.length >= 4 || !img.naturalWidth) return;
+  const r = img.getBoundingClientRect();
+  pts.push([((e.clientX - r.left) / r.width) * img.naturalWidth, ((e.clientY - r.top) / r.height) * img.naturalHeight]);
+  draw();
+};
+
+function draw() {
+  const W = img.naturalWidth || 1;
+  const H = img.naturalHeight || 1;
+  let s = pts.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${W / 150}" fill="#e33"/><text x="${x + W / 100}" y="${y}" fill="#e33" font-size="${W / 50}">${names[i]}</text>`).join('');
+  if (pts.length === 4) {
+    const Hm = solveHomography([[0, 0], [8, 0], [8, 8], [0, 8]], pts);
+    for (let i = 0; i <= 8; i++) {
+      const a = applyHomography(Hm, i, 0), b = applyHomography(Hm, i, 8);
+      const c = applyHomography(Hm, 0, i), d = applyHomography(Hm, 8, i);
+      s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#3c3" stroke-width="${W / 600}"/>`;
+      s += `<line x1="${c[0]}" y1="${c[1]}" x2="${d[0]}" y2="${d[1]}" stroke="#3c3" stroke-width="${W / 600}"/>`;
+    }
+    const corners = pts.map(([x, y]) => [+(x / W).toFixed(5), +(y / H).toFixed(5)]);
+    out.value = JSON.stringify({ corners }, null, 2);
+  } else {
+    out.value = '';
+  }
+  svg.innerHTML = s;
+  next.textContent = pts.length < 4 && img.naturalWidth ? `Click ${names[pts.length]}.` : '';
+}
+</script>
+</body>
+</html>
