@@ -5,7 +5,7 @@
 //   node eval/synth/run.js --save          also write eval/results/
 
 import { spawn } from 'node:child_process';
-import { Scene } from './scene.js';
+import { Scene, mulberry32 } from './scene.js';
 import { buildTimeline } from './script.js';
 import { SCENARIOS } from './scenarios.js';
 import { evaluate, summarize } from '../evaluate.js';
@@ -19,12 +19,17 @@ export async function runScenario(name, { fps = 10, verbose = false, video = nul
   const ff = video
     ? spawn('ffmpeg', ['-loglevel', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${scene.W}x${scene.H}`, '-r', String(fps), '-i', '-', '-pix_fmt', 'yuv420p', video], { stdio: ['pipe', 'inherit', 'inherit'] })
     : null;
+  const jr = mulberry32(42);
   async function* frames() {
     const n = Math.ceil(tl.duration * fps);
     for (let i = 0; i < n; i++) {
       const t = i / fps;
       const state = tl.stateAt(t);
       if (sc.shadows) addLighting(state, t);
+      // A phone on a stand shakes a little; a bump moves it for good.
+      const shake = sc.jitter ? [(jr() - 0.5) * 2 * sc.jitter, (jr() - 0.5) * 2 * sc.jitter] : [0, 0];
+      const bump = sc.bumpAt && t > sc.bumpAt ? [7, 5] : [0, 0];
+      state.shift = [shake[0] + bump[0], shake[1] + bump[1]];
       const frame = scene.render(state);
       if (ff && !ff.stdin.write(Buffer.from(frame.data.buffer))) await new Promise((r) => ff.stdin.once('drain', r));
       yield { frame, t: t * 1000 };

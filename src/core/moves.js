@@ -43,9 +43,34 @@ export function expectedStates(beforeOcc, beforePieces, afterOcc, afterPieces) {
   return states;
 }
 
-function candidate(kind, moves, chess, before) {
-  const afterOcc = occupancyOf(chess);
-  const afterPieces = piecesOf(chess);
+// Piece codes after a move, worked out directly from the move rather
+// than by playing it in chess.js (which regenerates every legal move on
+// each call and makes the two-move search slow).
+export function applyMove(pieces, move) {
+  const out = pieces.slice();
+  const from = squareIndex(move.from);
+  const to = squareIndex(move.to);
+  const piece = out[from];
+  out[from] = '';
+  if (move.flags.includes('e')) out[(from & ~7) | (to & 7)] = '';
+  if (move.flags.includes('k') || move.flags.includes('q')) {
+    const rank = from & ~7;
+    const kingside = move.flags.includes('k');
+    out[rank + (kingside ? 7 : 0)] = '';
+    out[rank + (kingside ? 5 : 3)] = piece[0] + 'R';
+  }
+  out[to] = move.promotion ? piece[0] + move.promotion.toUpperCase() : piece;
+  return out;
+}
+
+function occupancyFromPieces(pieces) {
+  const occ = new Uint8Array(64);
+  for (let sq = 0; sq < 64; sq++) if (pieces[sq]) occ[sq] = pieces[sq][0] === 'w' ? 1 : 2;
+  return occ;
+}
+
+function candidate(kind, moves, afterPieces, before) {
+  const afterOcc = occupancyFromPieces(afterPieces);
   return {
     kind,
     moves, // verbose chess.js moves, in order
@@ -68,13 +93,7 @@ function distinctMoves(chess) {
 // Every legal move from the current position.
 export function singleMoves(chess) {
   const before = snapshotPosition(chess);
-  const out = [];
-  for (const m of distinctMoves(chess)) {
-    chess.move(m);
-    out.push(candidate('move', [m], chess, before));
-    chess.undo();
-  }
-  return out;
+  return distinctMoves(chess).map((m) => candidate('move', [m], applyMove(before.pieces, m), before));
 }
 
 // Every legal move followed by every legal reply. Used when both players
@@ -83,12 +102,9 @@ export function movePairs(chess) {
   const before = snapshotPosition(chess);
   const out = [];
   for (const m1 of distinctMoves(chess)) {
+    const mid = applyMove(before.pieces, m1);
     chess.move(m1);
-    for (const m2 of distinctMoves(chess)) {
-      chess.move(m2);
-      out.push(candidate('pair', [m1, m2], chess, before));
-      chess.undo();
-    }
+    for (const m2 of distinctMoves(chess)) out.push(candidate('pair', [m1, m2], applyMove(mid, m2), before));
     chess.undo();
   }
   return out;
@@ -100,7 +116,7 @@ export function takeback(chess) {
   if (!history.length) return null;
   const before = snapshotPosition(chess);
   const last = chess.undo();
-  const c = candidate('takeback', [last], chess, before);
+  const c = candidate('takeback', [last], piecesOf(chess), before);
   chess.move(last);
   return c;
 }
@@ -112,12 +128,11 @@ export function replacements(chess) {
   if (!history.length) return [];
   const before = snapshotPosition(chess);
   const last = chess.undo();
+  const prev = piecesOf(chess);
   const out = [];
   for (const m of distinctMoves(chess)) {
     if (m.from === last.from && m.to === last.to) continue;
-    chess.move(m);
-    out.push(candidate('replace', [m], chess, before));
-    chess.undo();
+    out.push(candidate('replace', [m], applyMove(prev, m), before));
   }
   chess.move(last);
   return out;

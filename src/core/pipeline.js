@@ -20,7 +20,8 @@ export class Pipeline {
   }
 
   processFrame(frame, t) {
-    this.view = this.warp.apply(frame, this.view);
+    // A fresh view each frame: the motion detector keeps the last few.
+    this.view = this.warp.apply(frame);
     const m = this.motion.push(this.view, t);
     if (m.moving) {
       this.lastCheck = -Infinity;

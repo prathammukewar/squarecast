@@ -153,6 +153,15 @@ export function buildTimeline(sans, {
       muts.push({ t: t0 + dur(0.9), fn: (ps) => { const p = at(ps, x, y, 0.5); if (p) { p.x = x + (it.dx ?? 0.06); p.y = y + (it.dy ?? -0.05); } } });
       return tEnd + 1.5;
     }
+    if (it.kind === 'knock') {
+      // A piece gets knocked over, sits there a few seconds, is stood up.
+      const t1 = handPath(side, t0, [[[x, y, HOVER], dur(0.5)], [[x + 0.2, y, GRAB], dur(0.3)], [home(side, x), dur(0.5)]]);
+      muts.push({ t: t0 + dur(0.8), fn: (ps) => { const p = at(ps, x, y, 0.5); if (p) p.tipped = true; } });
+      const t2 = t1 + (it.duration || 4);
+      const t3 = handPath(side, t2, [[[x, y, HOVER], dur(0.5)], [[x, y, GRAB], dur(0.4)], [home(side, x), dur(0.5)]]);
+      muts.push({ t: t2 + dur(0.9), fn: (ps) => { const p = ps.find((q) => q.tipped); if (p) { p.tipped = false; p.x = x; p.y = y; } } });
+      return t3 + 1.5;
+    }
     if (it.kind === 'arm') {
       // An arm resting on the edge of the board while play goes on.
       const kf = hands[side + 'Rest'] || (hands[side + 'Rest'] = []);

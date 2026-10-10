@@ -45,6 +45,9 @@ export class Tracker {
     this.unexplainedSince = null;
     this.mismatchShown = false;
     this.nextAskId = 1;
+    // After a manual change to the record we don't trust the board picture
+    // until the board is seen to match the record again.
+    this.needsBaseline = false;
   }
 
   get calibrated() {
@@ -67,6 +70,10 @@ export class Tracker {
       return events;
     }
     if (this.pending) return events;
+    if (this.needsBaseline) {
+      this.#rebaseline(snap, t, events);
+      return events;
+    }
     const obs = this.#observe(snap);
     const stray = strayChanges(obs, this.params);
     if (!stray.length) {
@@ -93,6 +100,29 @@ export class Tracker {
     this.#setState('watching', t, events);
   }
 
+  // Accept the board as the new reference only if every square shows what
+  // the record says (empty, light or dark). Otherwise keep saying so.
+  #rebaseline(snap, t, events) {
+    const occ = occupancyOf(this.chess);
+    const ll = this.model.classify(snap, occ);
+    const off = [];
+    for (let sq = 0; sq < 64; sq++) if (bestClass(ll, sq) !== occ[sq] && ll[sq * 3 + occ[sq]] < -2) off.push(sq);
+    if (!off.length) {
+      this.ref = snap;
+      this.needsBaseline = false;
+      this.unexplainedSince = null;
+      this.mismatchShown = false;
+      this.#setState('watching', t, events);
+      return;
+    }
+    if (this.unexplainedSince === null) this.unexplainedSince = t;
+    this.#setState('waiting', t, events);
+    if (!this.mismatchShown && t - this.unexplainedSince >= this.params.absorbAfterMs) {
+      this.mismatchShown = true;
+      events.push({ type: 'mismatch', t, squares: off });
+    }
+  }
+
   #observe(snap) {
     const cmp = compare(this.warp, snap, this.ref);
     const { llr, noise } = changeEvidence(cmp.d, cmp.occluded, this.params);
@@ -103,10 +133,22 @@ export class Tracker {
     return { llr, noise, occluded: cmp.occluded, occ, beforeOcc, d: cmp.d, spill: this.warp.spill };
   }
 
+  // Candidate lists depend only on the position, so keep them while we
+  // wait in the same position.
+  #candidates(kind) {
+    const fen = this.chess.fen() + ' ' + this.chess.history().length;
+    if (!this.cache || this.cache.fen !== fen) this.cache = { fen };
+    const c = this.cache;
+    if (kind === 'singles') c.singles ??= singleMoves(this.chess);
+    if (kind === 'extras') c.extras ??= [takeback(this.chess), ...replacements(this.chess)].filter(Boolean);
+    if (kind === 'pairs') c.pairs ??= movePairs(this.chess);
+    return c[kind];
+  }
+
   #decide(snap, obs, stray, t, lastMotion, events) {
     const p = this.params;
-    const singles = rank(singleMoves(this.chess), obs, p);
-    const extras = rank([takeback(this.chess), ...replacements(this.chess)].filter(Boolean), obs, p);
+    const singles = rank(this.#candidates('singles'), obs, p);
+    const extras = rank(this.#candidates('extras'), obs, p);
     const best = singles[0];
     const rivalLead = (winner, pools) => {
       let top = -Infinity;
@@ -131,7 +173,7 @@ export class Tracker {
     }
 
     if (p.pairs) {
-      const pairs = rank(movePairs(this.chess), obs, p);
+      const pairs = rank(this.#candidates('pairs'), obs, p);
       const bp = pairs[0];
       if (bp && bp.fits) {
         if (rivalLead(bp, [pairs, singles, extras]) >= p.pairMargin) {
@@ -212,7 +254,8 @@ export class Tracker {
   // Returns false when there was nothing new to ask.
   #ask(reason, options, snap, obs, t, events) {
     if (!options.length) return false;
-    const sig = reason + ':' + options.map((o) => o.cand.kind + ' ' + o.cand.san.join(' ')).join('|');
+    // Same question regardless of the order the options came out in.
+    const sig = reason + ':' + options.map((o) => o.cand.kind + ' ' + o.cand.san.join(' ')).sort().join('|');
     if (this.dismissed === sig) return false;
     this.pending = { id: this.nextAskId++, reason, options, sig, snap, obs, t };
     events.push({
@@ -258,6 +301,7 @@ export class Tracker {
   // Manual corrections from the "fix move" picker.
   undo(t) {
     const m = this.chess.undo();
+    if (m) this.needsBaseline = true;
     return m ? [{ type: 'undo', t, how: 'manual', san: m.san }] : [];
   }
 
@@ -265,7 +309,7 @@ export class Tracker {
     const events = [];
     const m = this.chess.move(san);
     this.pending = null;
-    if (this.lastSnap) this.ref = this.lastSnap;
+    this.needsBaseline = true;
     this.waitingSince = null;
     this.unexplainedSince = null;
     this.mismatchShown = false;

@@ -61,6 +61,21 @@ export const SCENARIOS = {
       ],
     },
   },
+  'shaky-noisy': {
+    moves: SHORT,
+    scene: { tilt: 10, board: 'vinyl-green', noise: 8, blur: 1, seed: 9 },
+    jitter: 0.8,
+  },
+  'knocked-piece': {
+    moves: SHORT.slice(0, 8),
+    scene: { tilt: 0, board: 'vinyl-brown', seed: 10 },
+    script: { idle: [{ afterPly: 3, kind: 'knock', square: 'd7', side: 'b', duration: 4 }] },
+  },
+  'camera-bump': {
+    moves: SHORT,
+    scene: { tilt: 0, board: 'vinyl-green', seed: 11 },
+    bumpAt: 25,
+  },
   'lamp-shadows': {
     moves: SHORT,
     scene: { tilt: 15, board: 'vinyl-brown', light: { gain: 0.8, gradient: 0.4, warmth: 0.08 }, noise: 4, seed: 8 },

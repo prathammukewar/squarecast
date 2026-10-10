@@ -10,6 +10,7 @@ import { Chess } from '../src/vendor/chess.js';
 export async function evaluate({ frames, corners, width, height, truth, fen, options = {}, verbose = false }) {
   const pipe = new Pipeline({ corners, width, height, fen, ...options });
   const truthMoves = movesOf(truth.map((x) => x.san ?? x), fen);
+  const doneTimes = truth.every((x) => x.done != null) ? truth.map((x) => x.done) : null;
   const m = {
     moves: truthMoves.length,
     auto: 0, // recorded with no help
@@ -32,13 +33,22 @@ export async function evaluate({ frames, corners, width, height, truth, fen, opt
     if (verbose) console.log(`  ${(t / 1000).toFixed(1)}s ${text}`);
   };
 
+  // The operator looks at the board and enters every move that has been
+  // played but not recorded. With synthetic footage we know when each move
+  // was finished; with real footage we don't, so we enter one move at a
+  // time and let the app check the board again.
   const fixByHand = (t) => {
     if (ply >= truthMoves.length) return;
-    const want = truthMoves[ply];
-    pipe.tracker.play(want.san, t);
-    note(t, `operator enters ${want.san}`);
-    m.manual++;
-    ply++;
+    let upTo = ply + 1;
+    if (doneTimes) {
+      while (upTo < truthMoves.length && doneTimes[upTo] != null && doneTimes[upTo] * 1000 <= t) upTo++;
+      if (doneTimes[ply] * 1000 > t) return;
+    }
+    for (; ply < upTo; ply++) {
+      pipe.tracker.play(truthMoves[ply].san, t);
+      note(t, `operator enters ${truthMoves[ply].san}`);
+      m.manual++;
+    }
   };
 
   const handle = (events, t) => {
