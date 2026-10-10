@@ -9,6 +9,22 @@ import { Chess } from '../src/vendor/chess.js';
 
 export async function evaluate({ frames, corners, width, height, truth, fen, options = {}, verbose = false }) {
   const pipe = new Pipeline({ corners, width, height, fen, ...options });
+  const op = createOperator({ tracker: pipe.tracker, truth, fen, verbose });
+  let frameCount = 0;
+  const started = Date.now();
+  for await (const { frame, t } of frames) {
+    op.handle(pipe.processFrame(frame, t), t);
+    frameCount++;
+  }
+  const m = op.finish();
+  m.frames = frameCount;
+  m.seconds = (Date.now() - started) / 1000;
+  return m;
+}
+
+// The person holding the phone, played from the true game record. Feed it
+// every event the tracker emits.
+export function createOperator({ tracker, truth, fen, verbose = false }) {
   const truthMoves = movesOf(truth.map((x) => x.san ?? x), fen);
   const doneTimes = truth.every((x) => x.done != null) ? truth.map((x) => x.done) : null;
   const m = {
@@ -34,9 +50,9 @@ export async function evaluate({ frames, corners, width, height, truth, fen, opt
   };
 
   // The operator looks at the board and enters every move that has been
-  // played but not recorded. With synthetic footage we know when each move
-  // was finished; with real footage we don't, so we enter one move at a
-  // time and let the app check the board again.
+  // played but not recorded. When we know when each move was finished we
+  // enter all of them; otherwise one at a time, and the app checks the
+  // board again.
   const fixByHand = (t) => {
     if (ply >= truthMoves.length) return;
     let upTo = ply + 1;
@@ -45,7 +61,7 @@ export async function evaluate({ frames, corners, width, height, truth, fen, opt
       if (doneTimes[ply] * 1000 > t) return;
     }
     for (; ply < upTo; ply++) {
-      pipe.tracker.play(truthMoves[ply].san, t);
+      tracker.play(truthMoves[ply].san, t);
       note(t, `operator enters ${truthMoves[ply].san}`);
       m.manual++;
     }
@@ -64,15 +80,15 @@ export async function evaluate({ frames, corners, width, height, truth, fen, opt
           m.wrong++;
           m.wrongDetails.push({ t, got: e.san, want: want.map((w) => w.san) });
           note(t, `WRONG: recorded ${e.san.join(' ')}, played ${want.map((w) => w.san).join(' ')}`);
-          for (let i = 0; i < got.length; i++) pipe.tracker.undo(t);
-          for (const w of want) pipe.tracker.play(w.san, t);
+          for (let i = 0; i < got.length; i++) tracker.undo(t);
+          for (const w of want) tracker.play(w.san, t);
           ply += want.length;
           continue;
         }
         for (let i = 0; i < got.length; i++) {
           if (got[i] !== want[i].uci) {
             // Promotion to something other than a queen: tap the chip.
-            handle(pipe.tracker.setPromotion(want[i].uci[4], t), t);
+            handle(tracker.setPromotion(want[i].uci[4], t), t);
             m.chipTaps++;
             note(t, `chip: ${want[i].san}`);
           }
@@ -93,10 +109,10 @@ export async function evaluate({ frames, corners, width, height, truth, fen, opt
           (o.kind === 'pair' && want.length === 2 && sameMove(o.san[0], want[0]) && sameMove(o.san[1], want[1])));
         note(t, `ask (${e.reason}): ${e.options.map((o) => o.kind + ' ' + o.san.join(' ')).join(' | ')}`);
         if (index >= 0) {
-          handle(pipe.tracker.answer(e.id, index, t), t);
+          handle(tracker.answer(e.id, index, t), t);
         } else {
           m.badPrompts++;
-          handle(pipe.tracker.answer(e.id, null, t), t);
+          handle(tracker.answer(e.id, null, t), t);
           fixByHand(t);
         }
       } else if (e.type === 'mismatch') {
@@ -109,17 +125,13 @@ export async function evaluate({ frames, corners, width, height, truth, fen, opt
     }
   };
 
-  let frameCount = 0;
-  const started = Date.now();
-  for await (const { frame, t } of frames) {
-    handle(pipe.processFrame(frame, t), t);
-    frameCount++;
-  }
-  m.missed = truthMoves.length - ply;
-  m.frames = frameCount;
-  m.seconds = (Date.now() - started) / 1000;
-  m.pgn = pipe.chess.pgn();
-  return m;
+  const finish = () => {
+    m.missed = truthMoves.length - ply;
+    m.pgn = tracker.chess.pgn();
+    return m;
+  };
+
+  return { handle, finish, metrics: m, get ply() { return ply; } };
 }
 
 export function summarize(m) {
