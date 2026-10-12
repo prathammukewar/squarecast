@@ -5,8 +5,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Chess } from '../src/vendor/chess.js';
 import { Pipeline } from '../src/core/pipeline.js';
-import { Scene } from '../eval/synth/scene.js';
-import { piecesFromFen } from '../eval/synth/script.js';
+import { Scene } from '../src/demo/scene.js';
+import { piecesFromFen } from '../src/demo/script.js';
 import { runScenario } from '../eval/synth/run.js';
 import { SCENARIOS } from '../eval/synth/scenarios.js';
 

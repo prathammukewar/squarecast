@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Chess } from '../src/vendor/chess.js';
 import { suggestOrientation, orderCorners } from '../src/core/orientation.js';
-import { Scene } from '../eval/synth/scene.js';
-import { piecesFromFen } from '../eval/synth/script.js';
+import { Scene } from '../src/demo/scene.js';
+import { piecesFromFen } from '../src/demo/script.js';
 
 const START = new Chess().fen();
 const close = (a, b) => a.every((p, i) => Math.hypot(p[0] - b[i][0], p[1] - b[i][1]) < 1e-6);

@@ -263,7 +263,7 @@ export class Tracker {
       t,
       id: this.pending.id,
       reason,
-      options: options.map((o) => ({ kind: o.cand.kind, san: o.cand.san })),
+      options: options.map((o) => ({ kind: o.cand.kind, san: o.cand.san, uci: o.cand.moves.map(uci) })),
     });
     this.#setState('asking', t, events);
     return true;

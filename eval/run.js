@@ -5,8 +5,9 @@
 //   node eval/run.js footage/*.mp4 --save      also write eval/results/
 //   options: --fps 10 --width 960 -v
 //
-// Each video needs a PGN with the same name next to it, and its board
-// corners in eval/corners/<name>.json (make one with eval/corners.html).
+// Each video needs its game and board corners: either the .json file the
+// app exports with a test recording (same name as the video), or a PGN
+// next to the video plus eval/corners/<name>.json (eval/corners.html).
 
 import { spawn, execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
@@ -57,9 +58,9 @@ async function* decode(video, w, h) {
   }
 }
 
-function truthOf(pgnPath) {
+function truthOf(pgnPath, pgnText) {
   const c = new Chess();
-  const text = readFileSync(pgnPath, 'utf8');
+  const text = pgnText ?? readFileSync(pgnPath, 'utf8');
   c.loadPgn(text);
   const headers = c.getHeaders();
   return { sans: c.history(), fen: headers.FEN || null };
@@ -68,22 +69,27 @@ function truthOf(pgnPath) {
 const rows = [];
 for (const video of videos) {
   const name = basename(video, extname(video));
+  const exported = join(dirname(video), `${name}.json`);
   const pgn = join(dirname(video), `${name}.pgn`);
   const cornersFile = new URL(`./corners/${name}.json`, import.meta.url);
-  if (!existsSync(pgn)) {
-    console.log(`${name}: no PGN at ${pgn}, skipped`);
+  let corners;
+  let truth;
+  if (existsSync(exported)) {
+    // A test recording from the app: corners and PGN in one file.
+    const meta = JSON.parse(readFileSync(exported, 'utf8'));
+    corners = meta.corners;
+    truth = truthOf(null, meta.pgn);
+  } else if (existsSync(pgn) && existsSync(cornersFile)) {
+    // Corners are stored as fractions of the picture size, a1, h1, h8, a8.
+    corners = JSON.parse(readFileSync(cornersFile, 'utf8')).corners;
+    truth = truthOf(pgn);
+  } else {
+    console.log(`${name}: needs ${name}.json from the app, or ${name}.pgn plus eval/corners/${name}.json; skipped`);
     continue;
   }
-  if (!existsSync(cornersFile)) {
-    console.log(`${name}: no corners at eval/corners/${name}.json, skipped`);
-    continue;
-  }
-  // Corners are stored as fractions of the picture size, a1, h1, h8, a8.
-  const { corners } = JSON.parse(readFileSync(cornersFile, 'utf8'));
   const src = probe(video);
   const w = Math.min(width, src.w);
   const h = Math.round((src.h * w) / src.w / 2) * 2;
-  const truth = truthOf(pgn);
   console.log(`${name}: ${src.w}x${src.h} -> ${w}x${h}, ${truth.sans.length} plies`);
   const m = await evaluate({
     frames: decode(video, w, h),

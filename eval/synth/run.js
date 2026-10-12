@@ -5,8 +5,8 @@
 //   node eval/synth/run.js --save          also write eval/results/
 
 import { spawn } from 'node:child_process';
-import { Scene, mulberry32 } from './scene.js';
-import { buildTimeline } from './script.js';
+import { Scene, mulberry32 } from '../../src/demo/scene.js';
+import { buildTimeline } from '../../src/demo/script.js';
 import { SCENARIOS } from './scenarios.js';
 import { evaluate, summarize } from '../evaluate.js';
 import { saveResults } from '../report.js';

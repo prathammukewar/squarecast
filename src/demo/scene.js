@@ -134,7 +134,8 @@ export class Scene {
   }
 
   #makeNoise() {
-    const n = 1 << 20;
+    // Long enough for a whole frame from a random starting point.
+    const n = Math.max(1 << 20, Math.ceil(this.W * this.H * 3 * 1.5));
     this.noiseTable = new Float32Array(n);
     for (let i = 0; i < n; i++) {
       // Sum of uniforms, close enough to Gaussian.

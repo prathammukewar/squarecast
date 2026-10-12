@@ -5,7 +5,7 @@
 // first and pausing, taking an en passant pawn late, moving before the
 // opponent's hand is gone, hovering, nudging pieces, resting an arm.
 
-import { Chess } from '../../src/vendor/chess.js';
+import { Chess } from '../vendor/chess.js';
 import { mulberry32 } from './scene.js';
 
 const HOVER = 1.0;

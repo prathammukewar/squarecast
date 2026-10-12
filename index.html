@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14171a">
+<meta name="description" content="Record over-the-board chess games with a phone on a stand.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Squarecast</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="app/styles.css">
+</head>
+<body>
+<main id="app">
+
+<section id="home" class="screen">
+  <header class="home-head">
+    <img src="icons/icon-192.png" alt="" class="logo" width="56" height="56">
+    <h1>Squarecast</h1>
+    <p class="lede">Put a phone on a stand over a chessboard. It records the game as you play.</p>
+  </header>
+  <div class="stack">
+    <button id="start-camera" class="primary big">Record a game</button>
+    <button id="start-demo" class="big">Try it on a demo board</button>
+    <div class="row">
+      <button id="open-library">Games</button>
+      <button id="open-settings">Settings</button>
+    </div>
+    <p id="home-error" class="error" hidden></p>
+  </div>
+  <div class="faq">
+    <details>
+      <summary>Does any video leave my phone?</summary>
+      <p>No. The camera picture is read on the phone and thrown away. Only the moves are kept, and they stay on the phone unless you share them.</p>
+    </details>
+    <details>
+      <summary>Which phones work?</summary>
+      <p>A recent iPhone or Android phone with Safari or Chrome. Plug it in for long games. A stand that holds the phone above the board, or above White's side looking down, works best.</p>
+    </details>
+    <details>
+      <summary>Can I use it at a rated tournament?</summary>
+      <p>The phone is organizer equipment: set it up with the tournament director's approval, and players never touch it. Rules about electronic devices are written for players, but check with your director before using it at a rated event.</p>
+    </details>
+    <details>
+      <summary>How does it know the moves?</summary>
+      <p>It never tries to recognize the pieces. It knows the starting position, so after each move it only has to work out which legal move explains what changed on the board. When two moves look alike it asks you.</p>
+    </details>
+  </div>
+</section>
+
+<section id="stage" class="screen" hidden>
+  <div class="viewer" id="viewer">
+    <video id="video" playsinline muted autoplay></video>
+    <svg id="overlay" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="camera-banner" class="banner" hidden></div>
+  </div>
+  <div class="panel">
+
+    <div id="step-camera" class="step" hidden>
+      <h2>Frame the board</h2>
+      <p>Put the phone above the board, or above White's side looking down. Keep all four corners in view with a little space around them.</p>
+      <p id="light-hint" class="hint"></p>
+      <label id="zoom-row" class="field" hidden>Zoom <input id="zoom" type="range" min="1" max="3" step="0.05"></label>
+      <div class="row end"><button id="cancel-setup">Cancel</button><button id="to-corners" class="primary">Next</button></div>
+    </div>
+
+    <div id="step-corners" class="step" hidden>
+      <h2>Mark the corners</h2>
+      <p>Tap the four outer corners of the squares, not the border. Drag a corner to adjust it.</p>
+      <p id="corner-hint" class="hint"></p>
+      <div class="row end"><button id="clear-corners">Start over</button><button id="to-orient" class="primary" disabled>Next</button></div>
+    </div>
+
+    <div id="step-orient" class="step" hidden>
+      <h2>White's side</h2>
+      <p id="orient-text">The bar marks the side White sits on.</p>
+      <div class="row end"><button id="rotate">Turn</button><button id="to-check" class="primary">Looks right</button></div>
+    </div>
+
+    <div id="step-check" class="step" hidden>
+      <h2>Starting position</h2>
+      <p id="check-text">Set up the pieces and keep hands off the board for a moment.</p>
+      <div class="row end"><button id="recheck">Check again</button><button id="to-details" class="primary" disabled>Next</button></div>
+    </div>
+
+    <div id="step-details" class="step" hidden>
+      <h2>Game details</h2>
+      <p>All optional. They go into the PGN.</p>
+      <form id="details" class="details">
+        <label>White <input name="White" autocomplete="off"></label>
+        <label>Black <input name="Black" autocomplete="off"></label>
+        <label>White rating <input name="WhiteElo" inputmode="numeric" autocomplete="off"></label>
+        <label>Black rating <input name="BlackElo" inputmode="numeric" autocomplete="off"></label>
+        <label>Event <input name="Event" autocomplete="off"></label>
+        <label>Round <input name="Round" autocomplete="off"></label>
+        <label>Board <input name="Board" inputmode="numeric" autocomplete="off"></label>
+        <label>Date <input name="Date" type="date"></label>
+        <label>Time control <input name="TimeControl" placeholder="e.g. 1800+30" autocomplete="off"></label>
+      </form>
+      <div class="row end"><button id="to-live" class="primary">Start</button></div>
+    </div>
+
+    <div id="step-live" class="step" hidden>
+      <div class="status-bar">
+        <span id="status-dot" class="dot"></span><span id="status-text">Watching</span>
+        <span class="spacer"></span>
+        <span id="rec-badge" class="badge" hidden>Test recording</span>
+        <span id="battery" class="muted"></span>
+      </div>
+      <div id="alert" class="alert" hidden></div>
+      <div class="live-body">
+        <div id="board-box" class="board-box"></div>
+        <ol id="moves" class="moves"></ol>
+      </div>
+      <div id="chip" class="chip" hidden></div>
+      <div class="row tools">
+        <button id="undo">Undo</button>
+        <button id="fix">Fix move</button>
+        <button id="dim-on">Dim</button>
+        <button id="end-game" class="primary">End game</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div id="sheet" class="sheet" hidden>
+  <div class="sheet-body">
+    <h2 id="sheet-title"></h2>
+    <p id="sheet-text"></p>
+    <div id="sheet-options" class="options"></div>
+    <div class="row end"><button id="sheet-cancel"></button></div>
+  </div>
+</div>
+
+<section id="gameover" class="screen" hidden>
+  <h2>Game over</h2>
+  <p id="gameover-text"></p>
+  <div class="row results">
+    <button data-result="1-0">1-0</button>
+    <button data-result="1/2-1/2">½-½</button>
+    <button data-result="0-1">0-1</button>
+  </div>
+  <pre id="pgn" class="pgn"></pre>
+  <div class="stack">
+    <button id="analyze" class="primary">Analyze on Lichess</button>
+    <div class="row">
+      <button id="copy">Copy PGN</button>
+      <button id="download">Download .pgn</button>
+      <button id="share">Share</button>
+    </div>
+    <button id="export-recording" hidden>Share test recording</button>
+    <div class="row">
+      <button id="new-game">New game, same setup</button>
+      <button id="done">Done</button>
+    </div>
+  </div>
+</section>
+
+<section id="library" class="screen" hidden>
+  <div class="row"><h2 class="grow">Games</h2><button id="library-back">Back</button></div>
+  <input id="search" type="search" placeholder="Search by player or event" autocomplete="off">
+  <ul id="game-list" class="game-list"></ul>
+  <p id="library-empty" class="muted" hidden>No games yet.</p>
+  <button id="export-all">Download all as one PGN</button>
+</section>
+
+<section id="game-view" class="screen" hidden>
+  <div class="row"><h2 id="game-title" class="grow"></h2><button id="game-back">Back</button></div>
+  <pre id="game-pgn" class="pgn"></pre>
+  <div class="stack">
+    <button id="game-analyze" class="primary">Analyze on Lichess</button>
+    <div class="row">
+      <button id="game-copy">Copy PGN</button>
+      <button id="game-download">Download .pgn</button>
+      <button id="game-share">Share</button>
+    </div>
+    <button id="game-recording" hidden>Share test recording</button>
+    <button id="game-delete" class="danger">Delete game</button>
+  </div>
+</section>
+
+<section id="settings" class="screen" hidden>
+  <div class="row"><h2 class="grow">Settings</h2><button id="settings-back">Back</button></div>
+  <label class="toggle"><input type="checkbox" id="set-recording"> Test recording
+    <span class="muted">Save the camera video on this phone with each game, so it can be replayed through the recognition code later. Off unless you turn it on. Files leave the phone only if you share them.</span></label>
+  <label class="toggle"><input type="checkbox" id="set-lock"> Lock exposure and color
+    <span class="muted">Ask the camera to stop adjusting once the board is framed, where the phone allows it.</span></label>
+  <label class="field">Frames per second
+    <select id="set-fps"><option>5</option><option>8</option><option selected>10</option><option>15</option></select></label>
+</section>
+
+<div id="dim" class="dim" hidden><span id="dim-dot" class="dot"></span><span class="dim-hint">Tap to wake</span></div>
+<div id="toast" class="toast" hidden></div>
+
+</main>
+<script type="module" src="app/app.js"></script>
+</body>
+</html>

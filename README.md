@@ -4,7 +4,16 @@ Squarecast turns a phone on a stand into an electronic chessboard. It watches an
 
 It runs in the browser. Video never leaves the phone.
 
-This is early work. The move recognition and its test harness are here; the app itself comes next.
+Open it at **https://prathammukewar.github.io/squarecast/** on a phone. There is a demo board if you want to see it work without a chessboard. This is early work: recording, corrections and export work; Lichess broadcasting comes next.
+
+## Using it
+
+1. Put the phone on a stand above the board, or above White's side looking down, and plug it in for long games.
+2. Tap **Record a game**, then mark the four corners of the squares. It guesses which side White sits on from the starting position, and checks all 64 squares before you start.
+3. Play. The status line says when it is watching, when a hand is over the board, and when it needs you. If two moves look alike it shows both and you tap one. A promotion is recorded as a queen with a button to change it.
+4. At the end, pick the result and copy, download or share the PGN, or open it on Lichess for analysis. Every game is kept in **Games** on the phone.
+
+**Test recording** (in Settings, off by default) also saves the camera video on the phone with each game. Share the video and its .json file to a computer and `node eval/run.js game.mp4` replays it through the recognition code and scores it against the recorded game.
 
 ## How it recognizes moves
 
@@ -19,15 +28,16 @@ The same scoring handles two moves made before the board was still (blitz), take
 
 ## Code
 
-- `src/core/` the recognition pipeline, plain ES modules with no DOM, so it runs in a browser worker and in Node.
+- `index.html`, `app/` the app: setup, live recording, corrections, export and the game library. Recognition runs in a Web Worker (`app/worker.js`). No build step.
+- `src/core/` the recognition pipeline, plain ES modules with no DOM, so it runs in the worker and in Node.
+- `src/demo/` a small renderer for synthetic board footage (angled cameras, hands, shadows, noise). The app's demo board uses it, and so do the tests.
 - `src/vendor/chess.js` chess rules ([chess.js](https://github.com/jhlywa/chess.js), BSD-2-Clause).
-- `eval/` the evaluation harness: runs the pipeline over recorded video and compares the result with the real game.
-- `eval/synth/` a small renderer for synthetic board footage (angled cameras, hands, shadows, noise), used for regression tests.
+- `eval/` the evaluation harness: runs the pipeline over recorded video, or over synthetic games, and compares the result with the real game.
 - `test/` unit tests.
 
 ## Running the tests
 
-Node 20 or later, no dependencies:
+Node 20 or later, no dependencies. To try the app locally, serve the folder (for example `python3 -m http.server`) and open it in a browser.
 
 ```
 npm test
