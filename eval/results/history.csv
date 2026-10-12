@@ -10,3 +10,14 @@ time,commit,kind,recording,moves,auto,tapped,manual,missed,wrong,prompts,bad pro
 2026-10-10 18:55,ac6efd2,synthetic,knocked-piece,8,100.0%,0,0,0,0,0,0,0,0,600,600
 2026-10-10 18:55,ac6efd2,synthetic,camera-bump,16,75.0%,0,4,0,0,0,0,0,1,600,600
 2026-10-10 18:55,ac6efd2,synthetic,lamp-shadows,16,100.0%,0,0,0,0,0,0,0,0,600,600
+2026-10-12 05:48,482ab4b,synthetic,ruy-overhead,16,100.0%,0,0,0,0,0,0,0,0,600,600
+2026-10-12 05:48,482ab4b,synthetic,ruy-side-45,16,100.0%,0,0,0,0,0,0,0,0,600,600
+2026-10-12 05:48,482ab4b,synthetic,ruy-wood-dim,16,100.0%,0,0,0,0,0,0,0,0,600,600
+2026-10-12 05:48,482ab4b,synthetic,torture,84,100.0%,0,0,0,0,0,0,1,0,600,600
+2026-10-12 05:48,482ab4b,synthetic,checkmate,13,100.0%,0,0,0,0,0,0,0,0,600,600
+2026-10-12 05:48,482ab4b,synthetic,blitz-bursts,16,100.0%,0,0,0,0,0,0,0,0,600,600
+2026-10-12 05:48,482ab4b,synthetic,hands-no-moves,0,0.0%,0,0,0,0,0,0,0,0,,
+2026-10-12 05:48,482ab4b,synthetic,shaky-noisy,16,100.0%,0,0,0,0,0,0,0,0,600,600
+2026-10-12 05:48,482ab4b,synthetic,knocked-piece,8,100.0%,0,0,0,0,0,0,0,0,600,600
+2026-10-12 05:48,482ab4b,synthetic,camera-bump,16,75.0%,0,4,0,0,0,0,0,1,600,600
+2026-10-12 05:48,482ab4b,synthetic,lamp-shadows,16,100.0%,0,0,0,0,0,0,0,0,600,600
